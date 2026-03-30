@@ -122,15 +122,31 @@ x-api-key: <secret>
 
 ### List Emails
 
-`GET /api/emails?page=1&pageSize=20`
+`GET /api/emails?page=1&pageSize=20&to_address=<recipient>&unread=true`
 
 Response includes metadata only, ordered by `received_at DESC`.
+When `to_address` is provided, only emails whose `to_address` exactly matches this value are returned.
+When `unread=true` (also supports `1`, `yes`, `on`), only unread emails are returned.
 
 Example:
 
 ```bash
 curl -H "Authorization: Bearer $API_SECRET" \
   "http://127.0.0.1:8787/api/emails?page=1&pageSize=20"
+```
+
+Filter by recipient:
+
+```bash
+curl -H "Authorization: Bearer $API_SECRET" \
+  "http://127.0.0.1:8787/api/emails?page=1&pageSize=20&to_address=user@example.com"
+```
+
+Filter by unread:
+
+```bash
+curl -H "Authorization: Bearer $API_SECRET" \
+  "http://127.0.0.1:8787/api/emails?page=1&pageSize=20&unread=true"
 ```
 
 ### Get Email Detail

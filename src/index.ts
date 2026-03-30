@@ -123,17 +123,40 @@ async function handleListEmails(request: Request, env: Env, url: URL): Promise<R
   const page = clampInteger(url.searchParams.get('page'), 1, 1);
   const pageSize = clampInteger(url.searchParams.get('pageSize'), 20, 1, 100);
   const offset = (page - 1) * pageSize;
+  const toAddress = url.searchParams.get('to_address')?.trim();
+  const unreadOnly = parseBooleanFlag(url.searchParams.get('unread'));
+  const whereClauses: string[] = [];
+  const whereParams: Array<string | number> = [];
 
-  const rowsResult = await env.DB.prepare(
-    `SELECT id, address, to_address, sender, subject, received_at, is_read
-     FROM emails
-     ORDER BY received_at DESC
-     LIMIT ?1 OFFSET ?2`
-  )
-    .bind(pageSize, offset)
+  if (toAddress) {
+    whereClauses.push(`to_address = ?${whereParams.length + 1}`);
+    whereParams.push(toAddress);
+  }
+
+  if (unreadOnly) {
+    whereClauses.push(`is_read = ?${whereParams.length + 1}`);
+    whereParams.push(0);
+  }
+
+  const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
+  const limitParamIndex = whereParams.length + 1;
+  const offsetParamIndex = whereParams.length + 2;
+
+  const rowsResult = await env.DB
+    .prepare(
+      `SELECT id, address, to_address, sender, subject, received_at, is_read
+       FROM emails
+       ${whereSql}
+       ORDER BY received_at DESC
+       LIMIT ?${limitParamIndex} OFFSET ?${offsetParamIndex}`
+    )
+    .bind(...whereParams, pageSize, offset)
     .all<Pick<EmailRecord, 'id' | 'address' | 'to_address' | 'sender' | 'subject' | 'received_at' | 'is_read'>>();
 
-  const countResult = await env.DB.prepare('SELECT COUNT(*) AS total FROM emails').first<{ total: number | string }>();
+  const countResult = await env.DB
+    .prepare(`SELECT COUNT(*) AS total FROM emails ${whereSql}`)
+    .bind(...whereParams)
+    .first<{ total: number | string }>();
   const total = Number(countResult?.total ?? 0);
   const items = (rowsResult.results ?? []).map(mapListItem);
 
@@ -271,6 +294,15 @@ function clampInteger(value: string | null, fallback: number, min: number, max =
   }
 
   return Math.min(Math.max(parsed, min), max);
+}
+
+function parseBooleanFlag(value: string | null): boolean {
+  if (!value) {
+    return false;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on';
 }
 
 function isAuthorized(request: Request, secret: string | undefined): boolean {
