@@ -8,6 +8,7 @@ interface Env {
 
 interface EmailRecord {
   id: string;
+  address: string;
   to_address: string;
   sender: string;
   subject: string;
@@ -19,6 +20,7 @@ interface EmailRecord {
 
 interface EmailListItem {
   id: string;
+  address: string;
   toAddress: string;
   sender: string;
   subject: string;
@@ -83,11 +85,12 @@ async function storeIncomingEmail(message: ForwardableEmailMessage, env: Env): P
   const record = normalizeIncomingEmail(message, parsed);
 
   await env.DB.prepare(
-    `INSERT INTO emails (id, to_address, sender, subject, text_body, html_body, received_at, is_read)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0)`
+    `INSERT INTO emails (id, address, to_address, sender, subject, text_body, html_body, received_at, is_read)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 0)`
   )
     .bind(
       record.id,
+      record.address,
       record.to_address,
       record.sender,
       record.subject,
@@ -99,9 +102,14 @@ async function storeIncomingEmail(message: ForwardableEmailMessage, env: Env): P
 }
 
 function normalizeIncomingEmail(message: ForwardableEmailMessage, parsed: Email): EmailRecord {
+  const actualTo = parsed.to?.length
+    ? parsed.to.map((addr) => formatMailbox(addr.name, addr.address)).join(', ')
+    : message.to;
+
   return {
     id: crypto.randomUUID(),
-    to_address: message.to,
+    address: message.to,
+    to_address: actualTo,
     sender: stringifyAddress(parsed.from) || message.from,
     subject: parsed.subject?.trim() || '(no subject)',
     text_body: normalizeBody(parsed.text),
@@ -117,13 +125,13 @@ async function handleListEmails(request: Request, env: Env, url: URL): Promise<R
   const offset = (page - 1) * pageSize;
 
   const rowsResult = await env.DB.prepare(
-    `SELECT id, to_address, sender, subject, received_at, is_read
+    `SELECT id, address, to_address, sender, subject, received_at, is_read
      FROM emails
      ORDER BY received_at DESC
      LIMIT ?1 OFFSET ?2`
   )
     .bind(pageSize, offset)
-    .all<Pick<EmailRecord, 'id' | 'to_address' | 'sender' | 'subject' | 'received_at' | 'is_read'>>();
+    .all<Pick<EmailRecord, 'id' | 'address' | 'to_address' | 'sender' | 'subject' | 'received_at' | 'is_read'>>();
 
   const countResult = await env.DB.prepare('SELECT COUNT(*) AS total FROM emails').first<{ total: number | string }>();
   const total = Number(countResult?.total ?? 0);
@@ -144,7 +152,7 @@ async function handleListEmails(request: Request, env: Env, url: URL): Promise<R
 
 async function handleGetEmail(request: Request, env: Env, id: string): Promise<Response> {
   const record = await env.DB.prepare(
-    `SELECT id, to_address, sender, subject, text_body, html_body, received_at, is_read
+    `SELECT id, address, to_address, sender, subject, text_body, html_body, received_at, is_read
      FROM emails
      WHERE id = ?1`
   )
@@ -158,6 +166,7 @@ async function handleGetEmail(request: Request, env: Env, id: string): Promise<R
   return json(
     {
       id: record.id,
+      address: record.address,
       toAddress: record.to_address,
       sender: record.sender,
       subject: record.subject,
@@ -201,9 +210,10 @@ async function handleDeleteEmail(request: Request, env: Env, id: string): Promis
   });
 }
 
-function mapListItem(row: Pick<EmailRecord, 'id' | 'to_address' | 'sender' | 'subject' | 'received_at' | 'is_read'>): EmailListItem {
+function mapListItem(row: Pick<EmailRecord, 'id' | 'address' | 'to_address' | 'sender' | 'subject' | 'received_at' | 'is_read'>): EmailListItem {
   return {
     id: row.id,
+    address: row.address,
     toAddress: row.to_address,
     sender: row.sender,
     subject: row.subject,

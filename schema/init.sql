@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS emails (
   id TEXT PRIMARY KEY,
+  address TEXT NOT NULL,
   to_address TEXT NOT NULL,
   sender TEXT NOT NULL,
   subject TEXT NOT NULL DEFAULT '',
