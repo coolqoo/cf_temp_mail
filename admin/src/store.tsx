@@ -39,7 +39,7 @@ interface AppContextType extends AppState {
   logout: () => void;
   setPage: (page: number) => void;
   setFilters: (toAddress: string, unreadOnly: boolean) => void;
-  selectEmail: (id: string) => void;
+  selectEmail: (id: string | null) => void;
   refreshList: () => void;
   markAsRead: (id: string, isRead: boolean) => Promise<void>;
   removeEmail: (id: string) => Promise<void>;
@@ -102,10 +102,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         isLoadingList: false
       });
       
-      // Auto-select first if none selected and items exist
-      if (data.items.length > 0 && !state.selectedEmailId) {
-        selectEmail(data.items[0].id);
-      } else if (data.items.length === 0) {
+      if (data.items.length === 0) {
         updateState({ selectedEmailId: null, selectedEmailDetail: null });
       }
     } catch (err: any) {
@@ -123,7 +120,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [state.isAuthenticated, state.currentPage, state.filterToAddress, state.filterUnreadOnly, loadEmails]);
 
-  const selectEmail = async (id: string) => {
+  const selectEmail = async (id: string | null) => {
+    if (!id) {
+      updateState({ selectedEmailId: null, selectedEmailDetail: null, error: null });
+      return;
+    }
     updateState({ selectedEmailId: id, isLoadingDetail: true, error: null });
     try {
       const detail = await getEmailDetail(state.apiBaseUrl, state.apiSecret, id);

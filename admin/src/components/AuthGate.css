@@ -11,7 +11,7 @@
   max-width: 420px;
   padding: var(--spacing-8);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg), 0 0 40px rgba(99, 102, 241, 0.05);
+  box-shadow: var(--shadow-lg), 0 0 40px rgba(249, 115, 22, 0.05);
   animation: slide-up var(--transition-spring);
 }
 
@@ -100,12 +100,12 @@
   font-weight: 600;
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.2);
 }
 
 .auth-submit:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 6px 16px rgba(249, 115, 22, 0.3);
   filter: brightness(1.1);
 }
 

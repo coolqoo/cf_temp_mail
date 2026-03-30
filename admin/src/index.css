@@ -3,30 +3,34 @@
 :root {
   --font-family: 'Inter', system-ui, -apple-system, sans-serif;
   
-  /* Color Palette - Premium Dark Mode */
-  --bg-color: #0c0c0e; /* Deep abyss */
-  --panel-bg: #18181b; /* Zinc 900 */
-  --panel-bg-hover: #27272a; /* Zinc 800 */
-  --border-color: #27272a; /* Zinc 800 */
-  --divider-color: #222225;
+  /* Color Palette - Firecrawl/SaaS Pure Dark Mode */
+  --bg-color: #000000; /* Pure black foundation */
+  --panel-bg: #09090b; /* Zinc 950 - very slightly lighter than black */
+  --panel-bg-hover: #18181b; /* Zinc 900 for hovers */
+  
+  --border-color: #27272a; /* Zinc 800 - crisp ultra-thin lines */
+  --divider-color: #1f1f22;
   
   --text-primary: #f4f4f5; /* Zinc 50 */
   --text-secondary: #a1a1aa; /* Zinc 400 */
-  --text-tertiary: #71717a; /* Zinc 500 */
+  --text-tertiary: #52525b; /* Zinc 600 */
   
-  /* Accents */
-  --accent-color: #6366f1; /* Indigo 500 */
-  --accent-hover: #818cf8; /* Indigo 400 */
-  --accent-active: rgba(99, 102, 241, 0.15); /* Translucent Indigo */
+  /* Accents - Vibrant Orange */
+  --accent-color: #f97316; /* Orange 500 */
+  --accent-hover: #fb923c; /* Orange 400 */
+  --accent-active: rgba(249, 115, 22, 0.15); /* Translucent Orange */
   
+  /* Status Colors */
   --danger-color: #ef4444; /* Red 500 */
   --danger-hover: #f87171; /* Red 400 */
   --success-color: #10b981; /* Emerald 500 */
+  --success-bg: rgba(16, 185, 129, 0.1); 
+  --success-border: rgba(16, 185, 129, 0.2);
 
-  /* Shadows for depth */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.5);
+  /* Shadows - Minimalistic, mostly glowing borders now */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.8), 0 2px 4px -1px rgba(0, 0, 0, 0.8);
+  --shadow-drawer: -12px 0 24px rgba(0, 0, 0, 0.8);
   
   /* Spacing */
   --spacing-1: 0.25rem;
@@ -38,21 +42,22 @@
   
   /* Radii */
   --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  --radius-md: 6px; /* Slightly sharper corners for the dashboard look */
+  --radius-lg: 10px;
+  --radius-xl: 14px;
   
   /* Typography */
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
-  --text-base: 1rem;
+  --text-base: 0.9375rem; /* 15px is a great dense table size */
   --text-lg: 1.125rem;
-  --text-xl: 1.25rem;
+  --text-xl: 1.5rem;
+  --text-xxl: 2rem;
 
   /* Transitions */
-  --transition-fast: 0.15s ease;
-  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-spring: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --transition-fast: 0.1s ease; /* Snappier feel for dashboard */
+  --transition-normal: 0.2s ease-out;
+  --transition-drawer: 0.3s cubic-bezier(0.16, 1, 0.3, 1); /* Buttery smooth slide */
 }
 
 *, *::before, *::after {
@@ -94,14 +99,13 @@ input, select, textarea {
 }
 
 input:focus, button:focus {
-  outline: 2px solid var(--accent-color);
-  outline-offset: 2px;
+  outline: none; /* We use border highlighting for tables */
 }
 
-/* Scrollbars */
+/* Scrollbars - Thin & dark */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -110,7 +114,7 @@ input:focus, button:focus {
 
 ::-webkit-scrollbar-thumb {
   background: var(--border-color);
-  border-radius: 4px;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -119,7 +123,7 @@ input:focus, button:focus {
 
 /* Utils */
 .glass {
-  background: rgba(24, 24, 27, 0.6);
+  background: rgba(9, 9, 11, 0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.05);
