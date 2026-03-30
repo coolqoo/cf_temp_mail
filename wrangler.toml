@@ -1,0 +1,14 @@
+name = "temp-mail"
+main = "src/index.ts"
+compatibility_date = "2026-03-30"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "temp_mail"
+database_id = "ea148c51-cc69-4efe-83c8-d5ba8dcab390"
+
+[vars]
+APP_NAME = "Personal Temp Mail"
+
+# Set API_SECRET via `wrangler secret put API_SECRET`
