@@ -1,224 +1,127 @@
 # Personal Temp Mail
 
-Personal catch-all temporary mailbox built on Cloudflare Email Routing, Workers, and D1.
-
-This repository covers **Phase 1** and **Phase 2** only:
-- inbound email capture via Cloudflare Email Routing -> Worker `email()` handler
-- message parsing with `postal-mime`
-- structured email storage in D1
-- authenticated admin REST API for listing, reading, marking read/unread, and deleting emails
-
-Frontend admin UI is intentionally **not** included yet.
+A full-stack catch-all temporary mailbox system built on Cloudflare's ecosystem: **Email Routing**, **Workers**, **D1 Database**, and **Pages**.
 
 ## Features
 
-- Catch-all mailbox for any address under your domain
-- Stores `to`, `from`, `subject`, `date`, `text`, and `html`
-- Ignores attachments to reduce storage use
-- Token-protected API using either:
-  - `Authorization: Bearer <secret>`
-  - `x-api-key: <secret>`
-- Pagination for inbox listing
-- Read/unread state updates
-- Hard delete support
-- D1 indexes optimized for reverse chronological reads
+- **Catch-all Mailbox**: Receive emails for any address under your custom domain.
+- **Full-Stack Solution**:
+  - **Backend**: Cloudflare Worker for email ingestion and REST API.
+  - **Frontend**: Modern React-based Admin Dashboard (Cloudflare Pages).
+- **Secure**: All API endpoints and the dashboard are protected by a shared secret.
+- **Efficient**: Structured email storage in D1, ignoring attachments to save space.
+- **Managed**: Built-in support for listing, reading, marking status, and deleting emails.
 
 ## Project Structure
 
 ```text
 .
-├── schema/init.sql
-├── src/index.ts
-├── .dev.vars.example
-├── package.json
-├── tsconfig.json
-└── wrangler.toml
+├── admin/          # React Frontend (Admin Dashboard)
+├── schema/         # Database migrations (D1 SQL)
+├── src/            # Backend Worker source (TypeScript)
+├── wrangler.toml.example
+└── .dev.vars.example
 ```
 
-## Requirements
+## Prerequisites
 
-- Node.js 20+
-- Cloudflare account
-- A domain managed in Cloudflare
-- Cloudflare Email Routing enabled for that domain
-- Wrangler authenticated (`npx wrangler login`)
+- Cloudflare account with a domain managed on it.
+- Cloudflare Email Routing enabled for the domain.
+- Node.js 20+ installed locally.
 
-## Install
+---
 
+## Installation & Deployment
+
+### 1. Backend (Cloudflare Worker & D1)
+
+#### Install Dependencies
 ```bash
 npm install
 ```
 
-## Local Development
-
-Create your local env file:
-
-```bash
-cp .dev.vars.example .dev.vars
-```
-
-Edit `.dev.vars` and set a strong API secret.
-
-Start local worker dev server:
-
-```bash
-npm run dev
-```
-
-## Create D1 Database
-
-Create a D1 database:
-
+#### Create Database
 ```bash
 npx wrangler d1 create temp_mail
 ```
+Note the `database_id` returned by the command.
 
-Copy the returned `database_id` into `wrangler.toml`.
-
-Initialize schema remotely:
-
+#### Configure Wrangler
+Copy the example configuration:
 ```bash
+cp wrangler.toml.example wrangler.toml
+```
+Open `wrangler.toml` and replace `YOUR_DATABASE_ID` with the ID you just created.
+
+#### Initialize Schema
+```bash
+# For local development
+npx wrangler d1 execute temp_mail --local --file=./schema/init.sql
+
+# For production
 npx wrangler d1 execute temp_mail --remote --file=./schema/init.sql
 ```
 
-Initialize schema locally for dev:
-
-```bash
-npm run db:init:local
-```
-
-## Set Worker Secret
-
-Set the API secret used by all REST endpoints:
-
+#### Set API Secret
 ```bash
 npx wrangler secret put API_SECRET
 ```
+*Choose a strong secret. You will need this to log into the Admin panel.*
 
-## Email Routing Setup
-
-1. Open Cloudflare Dashboard.
-2. Go to your domain -> **Email** -> **Email Routing**.
-3. Enable Email Routing for the domain if it is not already enabled.
-4. Create a **catch-all** rule.
-5. For the action target, route the catch-all to this Worker.
-6. Deploy the Worker after your D1 binding and secret are configured.
-
-Result: any address like `abc@yourdomain.com`, `test123@yourdomain.com`, or `shop_apple@yourdomain.com` will be delivered to the Worker and stored in D1.
-
-## API
-
-All endpoints require one of these headers:
-
-```http
-Authorization: Bearer <secret>
-```
-
-or
-
-```http
-x-api-key: <secret>
-```
-
-### List Emails
-
-`GET /api/emails?page=1&pageSize=20&to_address=<recipient>&unread=true`
-
-Response includes metadata only, ordered by `received_at DESC`.
-When `to_address` is provided, only emails whose `to_address` exactly matches this value are returned.
-When `unread=true` (also supports `1`, `yes`, `on`), only unread emails are returned.
-
-Example:
-
-```bash
-curl -H "Authorization: Bearer $API_SECRET" \
-  "http://127.0.0.1:8787/api/emails?page=1&pageSize=20"
-```
-
-Filter by recipient:
-
-```bash
-curl -H "Authorization: Bearer $API_SECRET" \
-  "http://127.0.0.1:8787/api/emails?page=1&pageSize=20&to_address=user@example.com"
-```
-
-Filter by unread:
-
-```bash
-curl -H "Authorization: Bearer $API_SECRET" \
-  "http://127.0.0.1:8787/api/emails?page=1&pageSize=20&unread=true"
-```
-
-### Get Email Detail
-
-`GET /api/emails/:id`
-
-Example:
-
-```bash
-curl -H "x-api-key: $API_SECRET" \
-  "http://127.0.0.1:8787/api/emails/<email-id>"
-```
-
-### Update Read Status
-
-`PATCH /api/emails/:id/status`
-
-Body:
-
-```json
-{
-  "isRead": true
-}
-```
-
-Example:
-
-```bash
-curl -X PATCH \
-  -H "Authorization: Bearer $API_SECRET" \
-  -H "Content-Type: application/json" \
-  -d '{"isRead":true}' \
-  "http://127.0.0.1:8787/api/emails/<email-id>/status"
-```
-
-### Delete Email
-
-`DELETE /api/emails/:id`
-
-Example:
-
-```bash
-curl -X DELETE \
-  -H "Authorization: Bearer $API_SECRET" \
-  "http://127.0.0.1:8787/api/emails/<email-id>"
-```
-
-## Build and Validation
-
-Type check:
-
-```bash
-npm run typecheck
-```
-
-Dry-run build:
-
-```bash
-npm run build
-```
-
-## Deployment
-
-After D1 and secrets are configured:
-
+#### Deploy Backend
 ```bash
 npm run deploy
 ```
 
-## Notes
+---
 
-- `received_at` is normalized to ISO 8601 before writing into D1.
-- Attachments are parsed by `postal-mime` but intentionally not stored.
-- The Worker currently exposes only the admin API and email ingestion path.
-- Phase 3 (frontend admin UI) is still missing by design.
+### 2. Frontend (Admin Dashboard)
+
+#### Install Dependencies
+```bash
+cd admin
+npm install
+```
+
+#### Configure Environment
+The Admin UI needs to know your Backend API address. In the `admin` folder, your configuration might vary. (Note: Currently the UI defaults to the deployed worker URL or can be configured in `admin/src/store.tsx`).
+
+#### Build & Deploy to Cloudflare Pages
+```bash
+npm run deploy
+```
+*Follow the wrangler prompts to create a new Pages project when running for the first time.*
+
+---
+
+### 3. Cloudflare Email Routing Setup
+
+1. Go to your domain in the Cloudflare Dashboard -> **Email** -> **Email Routing**.
+2. Create a **Catch-all address**.
+3. Set the action to **Send to Worker** and select your `temp-mail` worker.
+
+---
+
+## Documentation
+
+- [中文说明 (Chinese README)](docs/README_CN.md)
+- [API Documentation](README.md#api) (See below)
+
+## API Reference
+
+All endpoints require one of these headers:
+- `Authorization: Bearer <secret>`
+- `x-api-key: <secret>`
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/emails` | List emails (paginated) |
+| `GET` | `/api/emails/:id` | Get email content |
+| `PATCH` | `/api/emails/:id/status` | Mark as read/unread |
+| `DELETE` | `/api/emails/:id` | Delete an email |
+
+---
+
+## License
+
+MIT
