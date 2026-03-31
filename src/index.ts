@@ -1,4 +1,5 @@
 import PostalMime, { type Address, type Email } from 'postal-mime';
+import { extractVerificationInfo } from './verification';
 
 interface Env {
   DB: D1Database;
@@ -16,6 +17,8 @@ interface EmailRecord {
   html_body: string | null;
   received_at: string;
   is_read: number;
+  verification_code: string | null;
+  verification_link: string | null;
 }
 
 interface EmailListItem {
@@ -26,6 +29,8 @@ interface EmailListItem {
   subject: string;
   receivedAt: string;
   isRead: boolean;
+  verificationCode: string | null;
+  verificationLink: string | null;
 }
 
 const JSON_HEADERS = {
@@ -85,8 +90,8 @@ async function storeIncomingEmail(message: ForwardableEmailMessage, env: Env): P
   const record = normalizeIncomingEmail(message, parsed);
 
   await env.DB.prepare(
-    `INSERT INTO emails (id, address, to_address, sender, subject, text_body, html_body, received_at, is_read)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 0)`
+    `INSERT INTO emails (id, address, to_address, sender, subject, text_body, html_body, received_at, is_read, verification_code, verification_link)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 0, ?9, ?10)`
   )
     .bind(
       record.id,
@@ -97,6 +102,8 @@ async function storeIncomingEmail(message: ForwardableEmailMessage, env: Env): P
       record.text_body,
       record.html_body,
       record.received_at,
+      record.verification_code,
+      record.verification_link,
     )
     .run();
 }
@@ -106,16 +113,25 @@ function normalizeIncomingEmail(message: ForwardableEmailMessage, parsed: Email)
     ? parsed.to.map((addr) => formatMailbox(addr.name, addr.address)).join(', ')
     : message.to;
 
+  const subject = parsed.subject?.trim() || '(no subject)';
+  const textBody = normalizeBody(parsed.text);
+  const htmlBody = normalizeBody(parsed.html);
+
+  // 提取验证码和验证链接
+  const verification = extractVerificationInfo(subject, textBody, htmlBody);
+
   return {
     id: crypto.randomUUID(),
     address: message.to,
     to_address: actualTo,
     sender: stringifyAddress(parsed.from) || message.from,
-    subject: parsed.subject?.trim() || '(no subject)',
-    text_body: normalizeBody(parsed.text),
-    html_body: normalizeBody(parsed.html),
+    subject,
+    text_body: textBody,
+    html_body: htmlBody,
     received_at: normalizeDate(parsed.date),
     is_read: 0,
+    verification_code: verification.verificationCode,
+    verification_link: verification.verificationLink,
   };
 }
 
@@ -144,14 +160,14 @@ async function handleListEmails(request: Request, env: Env, url: URL): Promise<R
 
   const rowsResult = await env.DB
     .prepare(
-      `SELECT id, address, to_address, sender, subject, received_at, is_read
+      `SELECT id, address, to_address, sender, subject, received_at, is_read, verification_code, verification_link
        FROM emails
        ${whereSql}
        ORDER BY received_at DESC
        LIMIT ?${limitParamIndex} OFFSET ?${offsetParamIndex}`
     )
     .bind(...whereParams, pageSize, offset)
-    .all<Pick<EmailRecord, 'id' | 'address' | 'to_address' | 'sender' | 'subject' | 'received_at' | 'is_read'>>();
+    .all<Pick<EmailRecord, 'id' | 'address' | 'to_address' | 'sender' | 'subject' | 'received_at' | 'is_read' | 'verification_code' | 'verification_link'>>();
 
   const countResult = await env.DB
     .prepare(`SELECT COUNT(*) AS total FROM emails ${whereSql}`)
@@ -197,6 +213,8 @@ async function handleGetEmail(request: Request, env: Env, id: string): Promise<R
       htmlBody: record.html_body,
       receivedAt: record.received_at,
       isRead: Boolean(record.is_read),
+      verificationCode: record.verification_code,
+      verificationLink: record.verification_link,
     },
     200,
     request,
@@ -233,7 +251,7 @@ async function handleDeleteEmail(request: Request, env: Env, id: string): Promis
   });
 }
 
-function mapListItem(row: Pick<EmailRecord, 'id' | 'address' | 'to_address' | 'sender' | 'subject' | 'received_at' | 'is_read'>): EmailListItem {
+function mapListItem(row: Pick<EmailRecord, 'id' | 'address' | 'to_address' | 'sender' | 'subject' | 'received_at' | 'is_read' | 'verification_code' | 'verification_link'>): EmailListItem {
   return {
     id: row.id,
     address: row.address,
@@ -242,6 +260,8 @@ function mapListItem(row: Pick<EmailRecord, 'id' | 'address' | 'to_address' | 's
     subject: row.subject,
     receivedAt: row.received_at,
     isRead: Boolean(row.is_read),
+    verificationCode: row.verification_code,
+    verificationLink: row.verification_link,
   };
 }
 

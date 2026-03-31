@@ -7,7 +7,9 @@ CREATE TABLE IF NOT EXISTS emails (
   text_body TEXT,
   html_body TEXT,
   received_at TEXT NOT NULL,
-  is_read INTEGER NOT NULL DEFAULT 0 CHECK (is_read IN (0, 1))
+  is_read INTEGER NOT NULL DEFAULT 0 CHECK (is_read IN (0, 1)),
+  verification_code TEXT,
+  verification_link TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_emails_received_at_desc
