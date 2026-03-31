@@ -209,6 +209,12 @@ Permanently delete a specific email from the database.
 **Note on Verification Extraction:**
 The `GET /api/emails` and `GET /api/emails/:id` endpoints automatically extract and include `verificationCode` and `verificationLink` (if found in the email's subject or body) to facilitate automated workflows.
 
+## Acknowledgments
+
+特别感谢 [Linux.do](https://linux.do/) 社区的支持与反馈，你们的建议让这个项目变得更好。
+
+Special thanks to the [Linux.do](https://linux.do/) community for your support and feedback.
+
 ---
 
 ## License

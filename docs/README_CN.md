@@ -202,6 +202,12 @@ npm run deploy
 **关于验证信息提取：**
 获取邮件列表或详情时，接口会自动从邮件主题或正文中提取并返回验证码 (`verificationCode`) 及验证链接 (`verificationLink`)，方便进行自动化任务（如自动注册等）。
 
+## Acknowledgments
+
+特别感谢 [Linux.do](https://linux.do/) 社区的支持与反馈，你们的建议让这个项目变得更好。
+
+Special thanks to the [Linux.do](https://linux.do/) community for your support and feedback.
+
 ---
 
 ## 许可证
