@@ -3,7 +3,7 @@ import { useAppContext } from '../store';
 import './DetailPane.css';
 
 const DetailPane: React.FC = () => {
-  const { selectedEmailId, selectedEmailDetail, isLoadingDetail, markAsRead, removeEmail } = useAppContext();
+  const { selectedEmailDetail, isLoadingDetail, markAsRead, removeEmail } = useAppContext();
   const [viewMode, setViewMode] = useState<'html' | 'text'>('html');
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
