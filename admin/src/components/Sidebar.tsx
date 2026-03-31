@@ -122,25 +122,53 @@ const Sidebar: React.FC = () => {
       {/* Pagination Footer */}
       {!isLoadingList && totalEmails > 0 && (
         <div className="pagination">
-          <span className="page-info">
-            {Math.min((currentPage - 1) * pageSize + 1, totalEmails)} – {Math.min(currentPage * pageSize, totalEmails)} of {totalEmails}
-          </span>
+          <div className="pagination-top">
+             <span className="page-info">
+              {Math.min((currentPage - 1) * pageSize + 1, totalEmails)} – {Math.min(currentPage * pageSize, totalEmails)} of {totalEmails}
+            </span>
+          </div>
+          
           <div className="page-controls">
             <button 
               disabled={currentPage <= 1} 
               onClick={() => setPage(currentPage - 1)}
-              className="icon-btn"
+              className="icon-btn-sm"
+              title="Previous"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="15 18 9 12 15 6"></polyline>
               </svg>
             </button>
+            
+            <div className="page-numbers">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => {
+                // Simple logic to show a window of pages
+                if (totalPages > 7) {
+                  if (p > 1 && p < totalPages && Math.abs(p - currentPage) > 1) {
+                    if (p === 2 || p === totalPages - 1) return <span key={p} className="ellipsis">...</span>;
+                    return null;
+                  }
+                }
+                
+                return (
+                  <button
+                    key={p}
+                    className={`page-num ${p === currentPage ? 'active' : ''}`}
+                    onClick={() => setPage(p)}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+            </div>
+
             <button 
               disabled={currentPage >= totalPages} 
               onClick={() => setPage(currentPage + 1)}
-              className="icon-btn"
+              className="icon-btn-sm"
+              title="Next"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="9 18 15 12 9 6"></polyline>
               </svg>
             </button>
