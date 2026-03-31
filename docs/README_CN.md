@@ -102,16 +102,102 @@ npm run deploy
 
 ## 常用 API
 
-所有的请求都需要在 Header 中携带以下之一：
+所有的请求都需要在 Header 中携带以下之一进行认证：
 - `Authorization: Bearer <your-secret>`
 - `x-api-key: <your-secret>`
 
-| 方法 | 端点 | 描述 |
-| :--- | :--- | :--- |
-| `GET` | `/api/emails` | 获取邮件列表 (支持分页)。返回 `verificationCode` 和 `verificationLink`。 |
-| `GET` | `/api/emails/:id` | 获取邮件详情内容。返回 `verificationCode` 和 `verificationLink`。 |
-| `PATCH` | `/api/emails/:id/status` | 设置已读/未读状态 |
-| `DELETE` | `/api/emails/:id` | 删除特定邮件 |
+### 1. 获取邮件列表
+获取收到的邮件列表，支持搜索和分页。
+
+**请求：** `GET /api/emails`
+
+**查询参数：**
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+| :--- | :--- | :--- | :--- | :--- |
+| `page` | `number` | 否 | `1` | 当前页码 |
+| `pageSize` | `number` | 否 | `20` | 每页数量 (最大 100) |
+| `to_address` | `string` | 否 | - | 筛选特定的收件地址 (如 `user@example.com`) |
+| `unread` | `boolean` | 否 | `false` | 仅查看未读邮件 (传 `1`, `true`, `yes`, 或 `on`) |
+
+**响应示例：**
+```json
+{
+  "page": 1,
+  "pageSize": 20,
+  "total": 1,
+  "totalPages": 1,
+  "items": [
+    {
+      "id": "a1b2c3d4...",
+      "address": "test@yourdomain.com",
+      "toAddress": "Recipient Name <test@yourdomain.com>",
+      "sender": "Sender <sender@example.com>",
+      "subject": "Your Verification Code",
+      "receivedAt": "2024-03-31T10:00:00.000Z",
+      "isRead": false,
+      "verificationCode": "123456",
+      "verificationLink": "https://example.com/verify?code=123456"
+    }
+  ]
+}
+```
+
+---
+
+### 2. 获取邮件详情
+获取特定邮件的完整内容（包括正文）。
+
+**请求：** `GET /api/emails/:id`
+
+**响应示例：**
+```json
+{
+  "id": "a1b2c3d4...",
+  "address": "test@yourdomain.com",
+  "toAddress": "Recipient Name <test@yourdomain.com>",
+  "sender": "Sender <sender@example.com>",
+  "subject": "Your Verification Code",
+  "textBody": "Hello, your code is 123456...",
+  "htmlBody": "<html>...</html>",
+  "receivedAt": "2024-03-31T10:00:00.000Z",
+  "isRead": true,
+  "verificationCode": "123456",
+  "verificationLink": null
+}
+```
+
+---
+
+### 3. 设置已读状态
+标记邮件为已读或未读。
+
+**请求：** `PATCH /api/emails/:id/status`
+
+**请求体：**
+```json
+{
+  "isRead": true
+}
+```
+
+**响应示例：**
+```json
+{
+  "id": "a1b2c3d4...",
+  "isRead": true
+}
+```
+
+---
+
+### 4. 删除邮件
+从数据库中永久删除特定邮件。
+
+**请求：** `DELETE /api/emails/:id`
+
+**响应：** `204 No Content`
+
+---
 
 **关于验证信息提取：**
 获取邮件列表或详情时，接口会自动从邮件主题或正文中提取并返回验证码 (`verificationCode`) 及验证链接 (`verificationLink`)，方便进行自动化任务（如自动注册等）。

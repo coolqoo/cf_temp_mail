@@ -109,19 +109,105 @@ npm run deploy
 
 ## API Reference
 
-All endpoints require one of these headers:
-- `Authorization: Bearer <secret>`
-- `x-api-key: <secret>`
+All requests must include one of the following headers for authentication:
+- `Authorization: Bearer <your-secret>`
+- `x-api-key: <your-secret>`
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/api/emails` | List emails (paginated). Returns `verificationCode` and `verificationLink`. |
-| `GET` | `/api/emails/:id` | Get email content. Returns `verificationCode` and `verificationLink`. |
-| `PATCH` | `/api/emails/:id/status` | Mark as read/unread |
-| `DELETE` | `/api/emails/:id` | Delete an email |
+### 1. List Emails
+Retrieve a list of received emails with search and pagination support.
+
+**Endpoint:** `GET /api/emails`
+
+**Query Parameters:**
+| Parameter | Type | Required | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `page` | `number` | No | `1` | Page number |
+| `pageSize` | `number` | No | `20` | Items per page (max 100) |
+| `to_address` | `string` | No | - | Filter by a specific recipient address (e.g., `user@example.com`) |
+| `unread` | `boolean` | No | `false` | Filter for unread emails only (`1`, `true`, `yes`, or `on`) |
+
+**Response Example:**
+```json
+{
+  "page": 1,
+  "pageSize": 20,
+  "total": 1,
+  "totalPages": 1,
+  "items": [
+    {
+      "id": "a1b2c3d4...",
+      "address": "test@yourdomain.com",
+      "toAddress": "Recipient Name <test@yourdomain.com>",
+      "sender": "Sender <sender@example.com>",
+      "subject": "Your Verification Code",
+      "receivedAt": "2024-03-31T10:00:00.000Z",
+      "isRead": false,
+      "verificationCode": "123456",
+      "verificationLink": "https://example.com/verify?code=123456"
+    }
+  ]
+}
+```
+
+---
+
+### 2. Get Email Detail
+Retrieve the full content of a specific email, including the message body.
+
+**Endpoint:** `GET /api/emails/:id`
+
+**Response Example:**
+```json
+{
+  "id": "a1b2c3d4...",
+  "address": "test@yourdomain.com",
+  "toAddress": "Recipient Name <test@yourdomain.com>",
+  "sender": "Sender <sender@example.com>",
+  "subject": "Your Verification Code",
+  "textBody": "Hello, your code is 123456...",
+  "htmlBody": "<html>...</html>",
+  "receivedAt": "2024-03-31T10:00:00.000Z",
+  "isRead": true,
+  "verificationCode": "123456",
+  "verificationLink": null
+}
+```
+
+---
+
+### 3. Update Read Status
+Mark an email as read or unread.
+
+**Endpoint:** `PATCH /api/emails/:id/status`
+
+**Request Body:**
+```json
+{
+  "isRead": true
+}
+```
+
+**Response Example:**
+```json
+{
+  "id": "a1b2c3d4...",
+  "isRead": true
+}
+```
+
+---
+
+### 4. Delete Email
+Permanently delete a specific email from the database.
+
+**Endpoint:** `DELETE /api/emails/:id`
+
+**Response:** `204 No Content`
+
+---
 
 **Note on Verification Extraction:**
-The `GET /api/emails` and `GET /api/emails/:id` endpoints now automatically extract and include `verificationCode` and `verificationLink` (if found in the email's subject or body) to facilitate automated tasks.
+The `GET /api/emails` and `GET /api/emails/:id` endpoints automatically extract and include `verificationCode` and `verificationLink` (if found in the email's subject or body) to facilitate automated workflows.
 
 ---
 
