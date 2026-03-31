@@ -108,10 +108,13 @@ npm run deploy
 
 | 方法 | 端点 | 描述 |
 | :--- | :--- | :--- |
-| `GET` | `/api/emails` | 获取邮件列表 (支持分页) |
-| `GET` | `/api/emails/:id` | 获取邮件详情内容 |
+| `GET` | `/api/emails` | 获取邮件列表 (支持分页)。返回 `verificationCode` 和 `verificationLink`。 |
+| `GET` | `/api/emails/:id` | 获取邮件详情内容。返回 `verificationCode` 和 `verificationLink`。 |
 | `PATCH` | `/api/emails/:id/status` | 设置已读/未读状态 |
 | `DELETE` | `/api/emails/:id` | 删除特定邮件 |
+
+**关于验证信息提取：**
+获取邮件列表或详情时，接口会自动从邮件主题或正文中提取并返回验证码 (`verificationCode`) 及验证链接 (`verificationLink`)，方便进行自动化任务（如自动注册等）。
 
 ---
 

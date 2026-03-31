@@ -115,10 +115,13 @@ All endpoints require one of these headers:
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `GET` | `/api/emails` | List emails (paginated) |
-| `GET` | `/api/emails/:id` | Get email content |
+| `GET` | `/api/emails` | List emails (paginated). Returns `verificationCode` and `verificationLink`. |
+| `GET` | `/api/emails/:id` | Get email content. Returns `verificationCode` and `verificationLink`. |
 | `PATCH` | `/api/emails/:id/status` | Mark as read/unread |
 | `DELETE` | `/api/emails/:id` | Delete an email |
+
+**Note on Verification Extraction:**
+The `GET /api/emails` and `GET /api/emails/:id` endpoints now automatically extract and include `verificationCode` and `verificationLink` (if found in the email's subject or body) to facilitate automated tasks.
 
 ---
 
