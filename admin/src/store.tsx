@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { fetchEmails, updateEmailStatus, deleteEmail, getEmailDetail } from './api';
 
 export interface Email {
@@ -48,6 +48,10 @@ interface AppContextType extends AppState {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+const getErrorMessage = (err: unknown, fallback: string) => {
+  return err instanceof Error ? err.message : fallback;
+};
+
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, setState] = useState<AppState>(() => {
     const savedUrl = localStorage.getItem('tm_api_url') || '';
@@ -70,60 +74,33 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
   });
 
-  const updateState = (updates: Partial<AppState>) => {
+  const selectedEmailIdRef = useRef<string | null>(state.selectedEmailId);
+
+  useEffect(() => {
+    selectedEmailIdRef.current = state.selectedEmailId;
+  }, [state.selectedEmailId]);
+
+  const updateState = useCallback((updates: Partial<AppState>) => {
     setState(prev => ({ ...prev, ...updates }));
-  };
+  }, []);
 
-  const clearError = () => updateState({ error: null });
+  const clearError = useCallback(() => updateState({ error: null }), [updateState]);
 
-  const login = (url: string, secret: string) => {
+  const login = useCallback((url: string, secret: string) => {
     const cleanUrl = url.replace(/\/+$/, '');
     localStorage.setItem('tm_api_url', cleanUrl);
     localStorage.setItem('tm_api_secret', secret);
     updateState({ apiBaseUrl: cleanUrl, apiSecret: secret, isAuthenticated: true, error: null });
-  };
+  }, [updateState]);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('tm_api_url');
     localStorage.removeItem('tm_api_secret');
     updateState({ apiBaseUrl: '', apiSecret: '', isAuthenticated: false, emails: [], selectedEmailDetail: null, selectedEmailId: null });
-  };
+  }, [updateState]);
 
-  const loadEmails = useCallback(async (page: number, toAddress: string, unreadOnly: boolean) => {
-    if (!state.apiBaseUrl || !state.apiSecret) return;
-    
-    updateState({ isLoadingList: true, error: null });
-    try {
-      const data = await fetchEmails(state.apiBaseUrl, state.apiSecret, page, state.pageSize, toAddress, unreadOnly);
-      updateState({
-        emails: data.items,
-        totalEmails: data.total,
-        currentPage: page,
-        isLoadingList: false
-      });
-      
-      // Auto-select first if none selected and items exist
-      if (data.items.length > 0 && !state.selectedEmailId) {
-        selectEmail(data.items[0].id);
-      } else if (data.items.length === 0) {
-        updateState({ selectedEmailId: null, selectedEmailDetail: null });
-      }
-    } catch (err: any) {
-      if (err.message === 'Unauthorized') {
-        logout();
-      } else {
-        updateState({ error: err.message || 'Failed to fetch emails', isLoadingList: false });
-      }
-    }
-  }, [state.apiBaseUrl, state.apiSecret, state.pageSize, state.selectedEmailId]);
-
-  useEffect(() => {
-    if (state.isAuthenticated) {
-      loadEmails(state.currentPage, state.filterToAddress, state.filterUnreadOnly);
-    }
-  }, [state.isAuthenticated, state.currentPage, state.filterToAddress, state.filterUnreadOnly, loadEmails]);
-
-  const selectEmail = async (id: string) => {
+  const selectEmail = useCallback(async (id: string) => {
+    selectedEmailIdRef.current = id;
     updateState({ selectedEmailId: id, isLoadingDetail: true, error: null });
     try {
       const detail = await getEmailDetail(state.apiBaseUrl, state.apiSecret, id);
@@ -146,10 +123,49 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
 
       updateState({ selectedEmailDetail: detail, isLoadingDetail: false });
-    } catch (err: any) {
-      updateState({ error: err.message || 'Failed to load email details', isLoadingDetail: false, selectedEmailDetail: null });
+    } catch (err: unknown) {
+      updateState({
+        error: getErrorMessage(err, 'Failed to load email details'),
+        isLoadingDetail: false,
+        selectedEmailDetail: null
+      });
     }
-  };
+  }, [state.apiBaseUrl, state.apiSecret, updateState]);
+
+  const loadEmails = useCallback(async (page: number, toAddress: string, unreadOnly: boolean) => {
+    if (!state.apiBaseUrl || !state.apiSecret) return;
+    
+    updateState({ isLoadingList: true, error: null });
+    try {
+      const data = await fetchEmails(state.apiBaseUrl, state.apiSecret, page, state.pageSize, toAddress, unreadOnly);
+      updateState({
+        emails: data.items,
+        totalEmails: data.total,
+        currentPage: page,
+        isLoadingList: false
+      });
+      
+      // Auto-select first if none selected and items exist
+      if (data.items.length > 0 && !selectedEmailIdRef.current) {
+        selectEmail(data.items[0].id);
+      } else if (data.items.length === 0) {
+        updateState({ selectedEmailId: null, selectedEmailDetail: null });
+      }
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, 'Failed to fetch emails');
+      if (message === 'Unauthorized') {
+        logout();
+      } else {
+        updateState({ error: message, isLoadingList: false });
+      }
+    }
+  }, [logout, selectEmail, state.apiBaseUrl, state.apiSecret, state.pageSize, updateState]);
+
+  useEffect(() => {
+    if (state.isAuthenticated) {
+      loadEmails(state.currentPage, state.filterToAddress, state.filterUnreadOnly);
+    }
+  }, [state.isAuthenticated, state.currentPage, state.filterToAddress, state.filterUnreadOnly, loadEmails]);
 
   const setPage = (page: number) => {
     updateState({ currentPage: page });
@@ -174,8 +190,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         emails: state.emails.map(e => e.id === id ? { ...e, isRead } : e),
         selectedEmailDetail: state.selectedEmailDetail?.id === id ? { ...state.selectedEmailDetail, isRead } : state.selectedEmailDetail
       });
-    } catch (err: any) {
-      updateState({ error: err.message || 'Failed to update email status' });
+    } catch (err: unknown) {
+      updateState({ error: getErrorMessage(err, 'Failed to update email status') });
     }
   };
 
@@ -205,8 +221,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (nextSelectedId) {
         selectEmail(nextSelectedId);
       }
-    } catch (err: any) {
-      updateState({ error: err.message || 'Failed to delete email' });
+    } catch (err: unknown) {
+      updateState({ error: getErrorMessage(err, 'Failed to delete email') });
     }
   };
 

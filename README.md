@@ -11,6 +11,7 @@ A full-stack catch-all temporary mailbox system built on Cloudflare's ecosystem:
 - **Secure**: All API endpoints and the dashboard are protected by a shared secret.
 - **Efficient**: Structured email storage in D1, ignoring attachments to save space.
 - **Managed**: Built-in support for listing, reading, marking status, and deleting emails.
+- **Smooth Admin UX**: Opening a message loads the detail pane without reloading the mailbox list, so the sidebar keeps its scroll position while browsing older emails.
 
 ## Project Structure
 
